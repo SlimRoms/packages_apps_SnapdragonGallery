@@ -266,7 +266,7 @@ DialogInterface.OnDismissListener, PopupMenu.OnDismissListener{
     };
     private SaveWaterMark mSaveWaterMark = new SaveWaterMark();
 
-    private DialogFragment mPresetDialog;
+    private PresetManagementDialog mPresetDialog;
     private FilterPresetSource mFilterPresetSource;
     private ArrayList <SaveOption>  tempFilterArray = new ArrayList<SaveOption>();
     private boolean mChangeable = false;
@@ -1599,7 +1599,6 @@ DialogInterface.OnDismissListener, PopupMenu.OnDismissListener{
     }
 
     public void onMediaPickerStarted() {
-        mPresetDialog = null;
         toggleComparisonButtonVisibility();
         ActionBar actionBar = getActionBar();
         actionBar.hide();
@@ -1786,10 +1785,14 @@ DialogInterface.OnDismissListener, PopupMenu.OnDismissListener{
             if(src == null) {
                 return false;
             }
-            FaceDetect fDetect = new FaceDetect();
-            fDetect.initialize();
-            FaceInfo[] faceInfos = fDetect.dectectFeatures(src);
-            fDetect.uninitialize();
+
+            FaceInfo[] faceInfos = null;
+            FaceDetect fDetect = FaceDetect.getInstance();
+            if (fDetect.isLibLoaded()) {
+                fDetect.initialize();
+                faceInfos = fDetect.dectectFeatures(src);
+                fDetect.uninitialize();
+            }
 
             if(faceInfos != null && faceInfos.length > 0) {
                 Rect[] faces = new Rect[faceInfos.length];
@@ -2140,20 +2143,27 @@ DialogInterface.OnDismissListener, PopupMenu.OnDismissListener{
         printer.printBitmap("ImagePrint", bitmap);
     }
 
+    private void manageUserPresets() {
+        if (mPresetDialog == null) {
+            mPresetDialog = new PresetManagementDialog();
+            mPresetDialog.setOnDismissListener(new DialogInterface.OnDismissListener() {
+                @Override
+                public void onDismiss(DialogInterface dialog) {
+                    mPresetDialog = null;
+                }
+            });
+            mPresetDialog.show(getSupportFragmentManager(), "NoticeDialogFragment");
+        }
+    }
+
     public void addNewPreset() {
         boolean skipIntro = GalleryUtils.getBooleanPref(this,
                 this.getString(R.string.pref_filtergenerator_intro_show_key), false);
         if (!skipIntro) {
-            mPresetDialog = new PresetManagementDialog();
-            mPresetDialog.show(getSupportFragmentManager(), "NoticeDialogFragment");
+            manageUserPresets();
         } else {
             onMediaPickerStarted();
         }
-    }
-
-    private void manageUserPresets() {
-        DialogFragment dialog = new PresetManagementDialog();
-        dialog.show(getSupportFragmentManager(), "NoticeDialogFragment");
     }
 
     private void showExportOptionsDialog() {
